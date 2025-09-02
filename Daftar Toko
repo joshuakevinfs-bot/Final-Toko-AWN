@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing Toko Sae Gold - Data Lengkap</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 30px; }
+        .controls { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .search-box { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .btn { padding: 8px 12px; margin: 2px; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .toko-item { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 10px; margin-bottom: 5px; display: flex; align-items: center; }
+        .toko-item:hover { background: #e9ecef; }
+        .urutan { background: #007bff; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-right: 10px; }
+        .toko-info { flex: 1; }
+        .toko-nama { font-weight: bold; color: #2c3e50; }
+        .toko-kode { color: #6c757d; font-size: 11px; }
+        .toko-koordinat { color: #6c757d; font-size: 10px; }
+        .toko-jarak { color: #28a745; font-weight: bold; margin: 0 10px; }
+        .maps-link { background: #4285f4; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 11px; }
+        .invalid { background: #fff3cd; border-color: #ffeaa7; }
+        .summary { background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 15px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺 Testing Toko Sae Gold - Data Lengkap</h1>
+        
+        <div style="background: #28a745; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+            <strong>📍 Titik Awal:</strong> -6.704510, 108.541419<br>
+            <a href="https://www.google.com/maps?q=-6.704510,108.541419" target="_blank" style="color: white;">📍 Lihat di Google Maps</a>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="searchBox" class="search-box" placeholder="🔍 Cari nama toko atau kode...">
+            <div>
+                <button onclick="sortByDistance()" class="btn btn-success">📍 Jarak</button>
+                <button onclick="sortByName()" class="btn btn-primary">🔤 Nama</button>
+                <button onclick="sortByCode()" class="btn btn-info">🏷️ Kode</button>
+                <button onclick="showValid()" class="btn btn-warning">✅ Valid Saja</button>
+                <button onclick="showAll()" class="btn btn-info">👁️ Semua</button>
+                <button onclick="exportCSV()" class="btn btn-success">📤 Export CSV</button>
+            </div>
+        </div>
+
+        <div id="toko-list">Memuat data...</div>
+        <div id="summary" class="summary"></div>
+    </div>
+
+    <script>
+        const startPoint = { lat: -6.704510, lng: 108.541419 };
+        let allTokos = [];
+        let currentTokos = [];
+        let validOnly = false;
+
+        // Data lengkap dari lampiran Anda
+        const rawTokoData = `C2048283	ELA, TK	-6.6574412	108.5142887
+C2048285	JANA, TK	-6.6600343	108.5341997
+C2048294	LIA FOTO COPY, TK	-6.6492858	108.5314796
+C2048343	RUNIAH, TK	-6.6438672	108.5288987
+C2048368	LINDA, TK	-6.607095	108.5189868
+C2048375	ASWATI, TK	-6.6074926	108.5177695
+C2048396	BUNGA, TK	-6.6049215	108.5182678
+C2048406	ABDULAH JAYA, TK	-6.6851567	108.5481767
+C2048413	BANYU MANIS, TK	-6.6727436	108.5421468
+C2048451	ICHA, TK	-6.652365	108.519341
+C2048697	TOKO PAK BUANG	-6.667528	108.538741
+C2048783	CARINI	-6.6071822	108.5171823
+C2048857	DUA BERKAH	-6.65380878378666	108.51497628650704
+C2048889	IKAH,TK	-6.6868808	108.3672301
+C2048900	RRR BAROKAH,TK	6.660974	108.41729
+C2048919	UUN	-6.663707	108.3808154
+C2048925	LIA,TK	-6.6704113	108.3894428
+C2048939	BAJURI,TK	-6.6457352	108.4124191
+C2048941	AMELIA	-6.6806574	108.3859047
+C2048944	UUM,TK	-6.6775315	108.3871666
+C2048959	HALIM,TK	-6.67059	108.3763269
+C2048969	IMAS,TK	-6.6426407	108.4266106
+C2048976	NOVI,TK	-6.6113556	108.3733192
+C2048985	ALGISA,TK	-6.6045022	108.3582666
+C2049017	SUMBER DANA,TK	-6.6421208	108.4245162
+C2049040	AZIZ,TK	-6.6678383	108.3767391
+C2049044	NABIEL,TK	-6.6435392	108.4070718
+C2049073	LELI,TK	-6.6264546	108.4496894
+C2049105	SISI,TK	-6.606989	108.355119
+C2049115	JASMINE,TK	-6.610114	108.421332
+C2049118	YANI,TK	-6.5649683	108.3825448
+C2049138	MUSLIHAH,TK	-6.6274558	108.4593665
+C2049145	CAHAYA,TK	-6.62752	108.4561996
+C2049152	SUHADI	-6.586654	108.486251
+C2049168	KAFA CELL,TK	-6.6260214	108.3863487
+C2049184	EKA	-6.6154531	108.386525
+C2049188	DIDING,TK	-6.5864748	108.3694647
+C2049189	LELI,TK	-6.5956532	108.3872747
+C2049257	TAHMID,TK	-6.5737701	108.3974451
+C2049329	AIMAN/KAETIN,TK	-6.6004739	108.4041433
+C2049340	MURSITI,TK	-6.5654105	108.3811601
+C2049384	UPAH,TK	-6.6067048	108.3737142
+C2049420	YATII, TK	-6.553923	108.37526
+C2049479	SUNETI, TK	-6.6081495	108.3395137
+C2049503	ANGGA	-6.605283	108.342421
+C2049527	ABAS	-6.5850871	108.3620032
+C2049564	MASYATI	-6.65613836582	108.535922057927
+C2049575	LAELA	-6.65574272	108.53650821
+C2287005	TOKO IYUS	-6.6784582	108.41932089999999
+C2287011	KOMISAH	-6.6795162	108.4172036
+C2287020	TOKO SYIFA	-6.6773761	108.4527347
+C2287026	TOKO MAMAH ADI	-6.658508	108.510207
+C2287027	TK SHAFIYAH	-6.623831	108.522227
+C2287028	hadi	-6.6676978	108.42894349999999
+C2287033	TOKO AZRIL	-6.652571	108.520330
+C2287036	TOKO DIAN	-6.658065	108.504594
+C2287037	TOKO TOPIK	-6.6725945	108.545856
+C2287038	MAKRUS	-6.6425494	108.40502079999999
+C2287049	WARUNG IBU MINI	-6.6775533	108.5425583
+C2287058	TOKO SOPIAH	-6.639595	108.5240847
+C2287059	TOKO FAKASA	-6.6428474	108.5306328
+C2287062	TOKO ANISELIN	-6.655109	108.535450
+C2287074	WARUNG YESI	-6.654641	108.511529
+C2287075	TRINA HANDAYANI	-6.653301	108.516315
+C2287076	Mulya Jaya	-6.643653199999999	108.4047793
+C2287078	Warung Ang Yoyo	-6.656601028584638	108.41244278650703
+C2287079	Warung Sega Yu Asiyah	-6.6060902	108.3556033
+C2287080	Tk Lila		
+C2287081	TK Titi	-6.605377	108.357050
+C2287083	TK MANG ATO/GRACIAS	-6.5868128	108.3968627
+C2287091	TK RONI		
+C2287092	SRC CKHU	-6.664465	108.3632567
+C2287093	TK SIMAJA	-6.6694667	108.3670233
+C2287095	TK IBU DEVY	-6.611211399999999	108.3733185
+C2851190	AKBAR	-6.68586	108.362963
+C2851626	TOKO IMAN	-6.58701	108.495267
+C2851664	YUSUF BAROKAH	-6.6060338	108.3556533
+C2852212	ALIF	-6.5854384	108.3640779
+C2852233	GABRIEL	-6.6705191	108.376528
+C2852273	SRC SITI	-6.6432	108.426474
+C2852521	TK AZRIL	-6.659546	108.5365419
+C2852568	TOKO DEWA	-6.6243283	108.5231557
+C2852611	MAUN	-6.66003307	108.53460457
+C2852734	JUJU	-6.6527117	108.534295
+C2852738	D & A	-6.6825505	108.5437809
+C2852898	SRC ODAH	-6.6808186	108.5437913
+C2852991	TOKO WATER	-6.658506	108.534208
+C2853052	SRC AMRIN	-6.6485284	108.3737083
+C2853072	TK NAYA	-6.6825412972190446	108.5438662
+C2853336	SRC MAMAN	-6.6432038	108.3749573
+C2853371	TK HM	-6.612436	108.4188349
+C2853428	TK CITRA	-6.6047396	108.3580601
+C2853431	SITI KHOTIMAH, SRC	-6.592725	108.382896
+C2853462	TK. PUTRA AS KUNINGA	-6.6842189	108.5468332
+C2853468	AYU BERKAH	-6.6626801	108.3809717
+C2853470	TK. SUYATI	-6.6114779	108.5201634
+C2853542	TOKO SARAH	-6.554587	108.375358
+C2853580	TOKO BIRIN	-6.604375	108.478519
+C2853591	TK. IBU AISYAH	-6.678556	108.547537
+C2853596	PA EKO	-6.6324773	108.5263455
+C2853606	TOKO ANDRA	-6.6835408	108.5404141
+C2853626	SRC PANDI	-6.6420687	108.3749939
+C2853630	SRC SYAHRONI	-6.6888912	108.3821715
+C2853642	TOKO SIDO JAYA	-6.6507868	108.5246684
+C2853788	WE BOS SAPI		
+C2853984	TINI	-6.6527992	108.5171499
+C3088050	PRAMBUDI	-6.6239913	108.5217117
+C3088588	TOKO MZ	-6.6834749	108.5404091
+C3088955	SRC NBL	-6.6252886	108.4509904
+C3088959	NADINE	-6.6559285	108.3989556
+C3089002	RAHMAT	-6.595748	108.396089
+C3089352	TOKO ABDULLLLAH	-6.663141	108.3676212
+C3089370	TK.ROHMAN	-6.6878352	108.3688211
+C3089393	BAROKAH	-6.6278385	108.4523495
+C3089559	SRC HAJI ZENAL		
+C3089661	WULAN ,TK	-6.606114	108.354786
+C3089727	IRMA ,TK	-6.6482205	108.3745466
+C3089783	ALFI ,TK	-6.5854417	108.3641157
+C3089832	TK. JAJANAN MURAH CR	-6.6236633	108.3805406
+C3089955	ZAM ZAM, TK	-6.65658	108.425675
+C3089998	HJ SASIH	-6.6705588	108.3765233
+C3090078	ULFIAH TK	-6.595174	108.3960415
+C3090091	RIZKY GALON	-6.6410075	108.4243754
+C3090179	SARIPAH TK	-6.6160568	108.38805
+C3090250	TK.YANTO	-6.6921644	108.5520053
+C3090278	ESIH SRC	-6.631398	108.5218232
+C3090286	TK LESA	-6.6868436	108.5278699
+C3090335	TK KAHIYANG	-6.6937654	108.5488687
+C3090348	TK AZALEA	-6.671527	108.547368
+C3090353	TK RAYHAN	-6.6306093	108.525387
+C3090393	TK HENI		
+C3090405	NENI S MANIA	-6.632547	108.5263062
+C3090495	NONO	-6.6468035	108.4062376
+C3090579	MARYATI	-6.562306	108.381154
+C3090581	ALFIAN	-6.647161	108.408139
+C3090639	NENTI	-6.6832804	108.550409
+C3090656	toko risma	-6.6057483	108.3487783
+C3090697	Inux Jaya	-6.650698	108.525254
+C3090704	TK KARINI	-6.6672083	108.5383656
+C3090706	TK QOBUL	-6.662221	108.538232
+C3090712	sahri	-6.6460083	108.3846782
+C3090722	jaybalah	-6.661850931149678	108.42763004232864
+C3090735	SRC AGUSTINA	-6.580196	108.507733
+C3090740	TK YUSUF	-6.693721399999999	108.55088889999999
+C3090746	BERKAT MAKMUR	-6.684062	108.5478946
+C3090750	cell ay	-6.607409499999999	108.3397001
+C3090751	TK ESIH	-6.631398	108.5218232
+C3090757	TK ALI	-6.5909956	108.5112175
+C3090758	SRC EDI	-6.633944	108.526652
+C3090782	TK HENI	-6.6456228	108.38495909999999
+C3090784	toko liiza12	-6.6734686	108.4191512
+C3090785	TK OPAN	-6.6837553	108.55752989999999
+C3090812	TOKO MUDAH MAJU	-6.6849583	108.5451267
+C3090816	TK BONDET JAYA	-6.654781	108.535609
+C3090818	tomie	-6.679366	108.417774
+C3090823	TOKO PUTRI TUNGGAL	-6.651374	108.523433
+C3090825	KANTIN PAK EKO	-6.658073199907194	108.53875479629517
+C3090828	TOKO AMEL	-6.659031	108.534881
+C3090833	TOKO WALLU CELL	-6.6579791	108.5057385
+C3090837	TOKO KENCANA	-6.6523233	108.5188482
+C3090841	TOKO TUTI	-6.694844	108.556460
+C3090842	TOKO SUGIARTI	-6.695149	108.556110
+C3090843	TOKO BERKAH YANPAR	-6.693353	108.557561
+C3090844	SRC NUNGKI	-6.692713	108.552644
+C3090848	TOKO JABAL NUR	-6.671942	108.547506
+C3090850	TOKO HADAD	-6.671745	108.547805
+C3090851	TOKO SOFIE	-6.672200448544163	108.54467547116433
+C3090853	TOKO AMEL	-6.672019799999999	108.54476969999999
+C3090861	WARUNG IBU RUKIDA	-6.6984515	108.5495835
+C3090862	TOKO IBU CUCU	-6.6982181999999995	108.54940339999999
+C3090863	TOKO CHOKY	-6.6984179	108.55068999999999
+C3090866	TOKO TIARA	-6.680975	108.542638
+C3090868	TOKO AZIZ	-6.679669	108.542644
+C3090871	TOKO NINA	-6.661984	108.538192
+C3090878	NABILA	-6.6036255	108.3723826
+C3090879	TK YUNUS	-6.5268485	108.43177469999999
+C3090885	SRC MIA	-6.6822517	108.557535
+C3090886	TOKO NURAENI	-6.646048	108.532668
+C3090887	TOKO FILI BERKAH	-6.6486947	108.5324358
+C3090898	SRC SOPIAH	-6.667208	108.541504
+C3090899	WARUNG MAMA RAESYAH	-6.6569367	108.538245
+C3090902	TOKO NISA	-6.651965	108.538798
+C3090921	WARUNG ALESYA	-6.669518999999999	108.54800259999999
+C3090925	src smber dna 2	-6.6560865	108.4151031
+C3090928	lafura	-6.6546752	108.4142668
+C3090932	TOKO LIA	-6.6526007	108.5338445
+C3090933	TOKO AISYAH81325	-6.6561017	108.5126383
+C3090934	TOKO SILA CELL	-6.654415	108.5117133
+C3090935	WARUNG FATHAN	-6.663000	108.534023
+C3090939	TOKO AQILA	-6.653125	108.513435
+C3090956	TOKO INDRI	-6.613095	108.386920
+C3090964	TOKO RR	-6.658595999999999	108.5145131
+C3090965	TOKO ADE YANUR	-6.6580435	108.5158892
+C3090975	TOKO KURNIA	-6.6423372	108.5285316
+C3090976	TOKO IWAN	-6.6892349	108.5272664
+C3090978	TOKO BUNYAMIN	-6.581263	108.504440
+C3090987	TOKO UMI	-6.6814899	108.5315924
+C3090996	madura silfia	-6.656218	108.4025613
+C3090997	TOKO IBU BEN	-6.666941	108.539070
+C3819636	SRC LUCKY	-6.6088591999999995	108.357682
+C3819657	TOKO AIM/ABI	-6.6535211	108.3827511
+C3819660	TOKO ZALFA	-6.6602863	108.3814486
+C3819663	TOKO PUTRI	-6.662074	108.381040
+C3819665	AANG KUNINGAN TK	-6.6650746	108.3804373
+C3819698	TK RANTI	-6.6834978	108.3756413
+C3819700	TOKO DE'TIKA	-6.6695842	108.3867518
+C3819708	YASMINE	-6.6952191	108.5493449
+C3819709	UMI AUFA TK	-6.5743808	108.3982085
+C3819710	HJ.IRAH/ARR CELL	-6.5725739999999995	108.3976874
+C3819713	TK LANGGANAN	-6.5595737	108.3815376
+C3819717	TK GALA	-6.555844	108.37101729999999
+C3819730	Warung Ijin	-6.6082475999999994	108.40738759999999
+C3819731	Rezel TK	-6.601837	108.4054915
+C3819732	TOKO IJAH	-6.6285402	108.5247613
+C3819740	WARUNG VIONA	-6.621190539523005	108.51896294232864
+C3819741	TOKO MANDOR	-6.618258	108.521851
+C3819742	TOKO LALONG	-6.6570689	108.3654195
+C3819767	Swalan latifah	-6.6271632	108.4502273
+C3819769	SRC FAUZI	-6.673763699999999	108.38837699999999
+C3819773	Swalayan latifah TK	-6.6272668999999995	108.4501901
+C3819796	TK KUNAINI	-6.5814292	108.4586339
+C3819803	TK AGISNA	-6.5811414	108.4501638
+C3819804	TOKO NAYA	-6.581823	108.4488173
+C3819809	LUMBUNG BERKAH	-6.6088277	108.41193559999999
+C3819816	TK ADIN	-6.59328092013353	108.39544332639099
+C3819818	ADINDA TK	-6.629391399999999	108.45183949999999
+C3819820	DZAKA BAGUS TK	-6.6583048	108.4378145
+C3819830	ABIDIN TK	-6.5546313	108.3748887
+C3819831	AYYUBI TK	-6.6027203	108.3720585
+C3819837	GENDIS	-6.6674503	108.42922899999999
+C3819848	AS MANNAH	-6.6126182	108.3722212
+C3819858	TIGA SAUDARA BUDUR		
+C3819861	yasmine h	-6.5780889	108.5049413
+C3819863	TURI TK	-6.6208201	108.3313854
+C3819865	ANUGERAH BATIK	-6.6813211	108.3830949
+C3819866	HUMAIROH TK	-6.6635355999999994	108.3777619
+C3819868	SALMAH SRC	-6.6678225	108.38067609999999
+C3819883	TOKO SAMI'	-6.563347	108.4333342
+C3819884	SAWAJI	-6.6925711	108.54841
+C3819885	SOLEH	-6.5393392	108.4277298
+C3819893	YUNUS TK	-6.5263546	108.4316441
+C3819895	TK YANTI	-6.5814300999999995	108.4591624
+C3819896	AS SALAM TK	-6.5937505	108.417992
+C3819897	RACHMA GEGESIK	-6.6011929	108.4153474
+C3819898	BAROKAH	-6.5931086	108.41817909999999
+C3819902	YN FROZEN	-6.595749	108.387286
+C3819903	SRC DS	-6.6015443	108.40421789999999
+C3819910	TK SYAHRI KROYA	-6.602534	108.480082
+C3819912	AGUNG AKBAR	-6.6023096	108.48128659999999
+C3819922	DANA	-6.6560862	108.4160725
+C3819926	SRC ESAN	-6.6444844	108.4278276
+C3819933	SRC RIDHO	-6.6848092999999995	108.37560669999999
+C3819934	SUMBER REJEKI	-6.669600	108.376588
+C3819936	TK BUNDA IIM	-6.6719393	108.3735811
+C3819953	Toko Alifah		
+C3819954	TOKO E'ER	-6.554262	108.371787
+C3819955	TK AZKA	-6.5627444	108.3777673
+C3819956	TOKO Sholeh	-6.5394709	108.4278262
+C3819957	Toko Ibu Fuah	-6.52172937920375	108.4304806
+C3819958	Toko Puput	-6.6124699	108.42551879999999
+C3819961	Toko As Salam	-6.5937505	108.417992
+C3819964	Toko Witno	-6.60315793686355	108.47770269815027
+C3819968	IBU NOK RAFA	-6.5611851	108.3779388
+C3819969	MARFUAH TK	-6.5603733	108.3786505
+C3819970	Warung Adem bpk.Lempo	-6.6623827	108.4271956
+C3819972	Toko Farah	-6.6886868	108.3756799
+C3819977	TK.Muidah	-6.6147154	108.4262111
+C3819978	TK FAJAR	-6.5211724	108.4304173
+C3819979	TK LUTHFI	-6.5363758	108.4236724
+C3819981	SRC Feni	-6.5959332	108.4190844
+C3819982	Toko Hanan	-6.5756257	108.3970281
+C3819984	TOKO LELA	-6.6062532	108.373247
+C3819985	DUA PUTRI	-6.6094349	108.3735578
+C3819994	Toko Danis	-6.5730617	108.4307933
+C3819998	TOKO TATI	-6.5913577	108.4178338
+C3819999	Ariya Putra	-6.5364983	108.42547
+C3820000	WAHYUDIN	-6.599474	108.3982004
+C3820002	TK ABDULLAH	-6.5941667	108.3959833
+C3820003	TOKO ASIH	-6.5904977	108.3953709
+C3820004	TK.Afkar	-6.6132068	108.3875167
+C3820006	Toko H.Saepudin	-6.6492183	108.37369
+C3820013	TK.Fiqri	-6.6613933	108.3858567
+C3820017	TK.Ayun	-6.6128276	108.4206206
+C3820021	TK.Brinas	-6.5301775	108.4317525
+C3820024	TK.Andien	-6.5640689	108.3798591
+C3820025	HJ SAMAROH	-6.6138526	108.3893294
+C3820029	TK.Junaeni	-6.6039126	108.3574415
+C3820034	TOKO SABAN	-6.6467262	108.3688235
+C3820038	ASIYAH TK	-6.65288	108.3665286
+C3820040	SRC CATIAH	-6.6604711	108.3618327
+C3820044	TK.BB CELL	-6.627484	108.4576093
+C3820045	TK.RISKA	-6.6258654	108.4572381
+C3820046	ALFAR	-6.628955	108.404382
+C3820048	TK.GHOZALI	-6.6896684	108.3709449
+C3820050	TK.2MM	-6.6880266	108.3692345
+C3820052	IBU KONAAH	-6.6614154	108.3844717
+C3820059	AMINAH	-6.6103409	108.4250721
+C3820061	TK.MB AL BARQAH	-6.6200999	108.387417
+C3820062	MUHAJIR SRC	-6.5755705	108.3995834
+C3820064	TK.ALIF	-6.6156751	108.3871408
+C3820065	HANA (MANG SADI)	-6.5722178	108.3982504
+C3820066	TK.TRISNO	-6.6399923	108.375406
+C3820078	H.ANA	-6.6288312	108.4492124
+C3820079	TK.ANIDA	-6.6601445	108.4072893
+C3820080	TK.ENI	-6.6586108	108.4002153
+C3820081	TOKO ARI	-6.6813371	108.3830522
+C3820087	TOKO RYAN	-6.5363752	108.4249637
+C3820088	MAMAH VANNO	-6.5248963	108.4315623
+C3820093	URIPAH (3 PUTRA)	-6.639045	108.3701495
+C3820094	TK.YOGI	-6.6029184	108.3572808
+C3820095	QIARA	-6.6732942	108.4269998
+C3820119	TK.ANIDA	-6.6600692	108.4074537
+C3820120	TK IDRUS	-6.6714808	108.3891675
+C3820121	TK NABIL	-6.6767215	108.3875575
+C3820128	TK MILATI	-6.6712669	108.3890368
+C3820131	TOKO YOGI	-6.5612332	108.3779233
+C3820146	TK ALDIS	-6.6702044	108.3894342
+C3820147	TK.RYAN	-6.5364168	108.425037
+C3820148	TK.URIPAH(3PUTRA)	-6.6391665	108.3701708
+C3820197	TK DUA SERANGKAI	-6.5558417	108.37318
+C3820200	TK NANA	-6.5884945	108.3969176
+C3820201	TK H WAWAN	-6.6099682	108.3521868
+C3820221	TOKO ARGO	-6.5540217	108.5224966
+C3820222	TK II/MAS ALI	-6.5520827	108.5196911
+C3820223	TOKO NUR KADMA	-6.6344912	108.5267753
+C3820226	MADURA ANDIKA 2	-6.5799767	108.5075417
+C3820227	Toko Naija	-6.6698411	108.3876087
+C3820228	TOKO MELINDA	-6.6558829	108.4150772
+C3820232	NAZWA TK	-6.6039145	108.3578675
+C3820235	TOKO ILIK	-6.5904584	108.3966076
+C3820236	TK.BAROKAH ALAM	-6.5512933	108.375833
+C3820238	TK.AHMAD	-6.5512501	108.3748068
+C3820239	TOKO NANO	-6.5764	108.3968733
+C3820244	TK LINDA (PEGAGAN)	-6.5986017	108.5112367
+C3820248	TOKO ADAM	-6.5868557	108.503737
+C3820249	TK ARI	-6.681324	108.3830995
+C3820251	TOKO HAPSAH	-6.6315576	108.5214195
+C3820254	MADURA ROMY	-6.5939552	108.4257382
+C3820261	TK.TIAH	-6.6031592	108.35754
+C3820263	TOKO HENI	-6.6460212	108.384785
+C3820264	TOKO PUAD	-6.6527828	108.3664947
+C3820265	ILHAM CELL	-6.6408433	108.3752204
+C3820266	TOKO MADURA ADI	-6.6483605	108.3736507
+C3820268	TK WILDA	-6.6606839	108.4378505
+C3820270	Prof Tk	-6.6752399	108.4261933
+C3820271	TK.Solikin	-6.6046769	108.3875495
+C3820277	TK AIZKA	-6.5548333	108.5251867
+C3820279	IBU DARINI	-6.5728386	108.5053222
+C3820280	LARIS TOKO	-6.6622517	108.5382083
+C3820281	TOKO LARIS	-6.5922488	108.5044406
+C3820282	TK.BERKAH	-6.6635066	108.5385501
+C3820285	Toko Cinta	-6.6814574	108.3846874
+C3820286	TOKO RIFQI	-6.5381739	108.4315128
+C3820287	TK.SUNIPAH	-6.6472354	108.3838803
+C3820291	TK.LINA	-6.6643018	108.3619713
+C3820293	TOKO LILIS	-6.5755759	108.3978743
+C3820295	TOKO HASAN	-6.6279564	108.4569353
+C3820298	TK.HAFID	-6.6301776	108.5219585
+C3820301	TK YATI BONI	-6.6357155	108.4381239
+C3820303	WARUNG BAROKAH	-6.6241084	108.4529746
+C3820306	TK.Mikha	-6.5813166	108.5045232
+C3820307	TK BIL SAHRUL	-6.681363	108.3830939
+C3820308	TOKO DUA PUTRI	-6.5633307	108.5043806
+C3820309	TK.SYAQILA	-6.5879345	108.5036463
+C3820310	TK EVI	-6.6615785	108.3863056
+C3820311	Toko Syafa	-6.7549558	108.4883294
+C3820312	TOKO SASI	-6.6705272	108.3764862
+C3820314	TOKO SRI	-6.677471	108.3759267
+C3820315	TOKO SARIPAH	-6.6486039	108.5314379
+C3820317	TOKO ILHAM	-6.6945288	108.4208252
+C3820318	TK MANG KOMA	-6.6873838	108.3686108
+C3820322	Toko Sochiyah	-6.695541	108.4289625
+C3820327	KHUMAIROH (M.IZIN)	-6.6080673	108.4080592
+C3820372	Warkop Abang Jago	-6.6719355	108.3587406
+C3820376	TOKO ANDRI	-6.615854	108.3696524
+C3820377	TK IBU SAYATI	-6.6111975	108.3741479
+C3820381	Tk.Bismillah	-6.58538	108.363365
+C3820384	PUTRA JAYA TK	-6.6095388	108.3899351
+C3820393	TOKO US	-6.6092781	108.4764177
+C3820397	TK KENZO	-6.5496722	108.5015764
+C3820403	TK SUNAMI	-6.5682245	108.5034944
+C3820414	TOKO IDA	-6.654341	108.5401803
+C3820419	TK FAHIRA	-6.763205	108.4342533
+C3820422	TK IBU WARMI	-6.6646433	108.3664133
+C3820426	TK DAIM FADILLAH	-6.6577538	108.3672229
+C3820428	TK MAESYURO	-6.6483185	108.3671313
+C3820432	SRC KUNIAH	-6.6522192	108.4069044
+C3820433	TK.AL AHTAR	-6.6069158	108.3868817
+C3820434	AL RAHMA CELL	-6.5576732	108.3781952
+C3820439	TOKO SONJAYA	-6.661857	108.4383323
+C3820440	TK.Barokah	-6.6294767	108.4501117
+C3820446	TOKO AL BAROKAH	-6.617214	108.5200496
+C3820452	TK KR7	-6.7083674	108.454261
+C3820456	Madura Rizky	-6.67458	108.5455933
+C3820462	TOKO BETI	-6.5366333	108.42876
+C2049119	HENDRI,TK	-6.562878	108.432169
+C2049159	MILA	-6.606149	108.353425
+C2049261	ARHAM,TK	-6.625235	108.478445
+C2049619	DEVI	-6.616053	108.33233
+C2049867	NOK ARA	-6.621094	108.453342
+C3088832	TOKO LILY	-6.650782	108.373735
+C3090719	HR JAYA	-6.655024	108.535529
+C3090874	fitriyah	-6.612621	108.371808
+C3819846	ZIYAH		
+C3819882	HASAN TK	-6.563021	108.431484
+C3820498	H samiri	-6.6737392	108.4241252
+C3820544	TK.Jaidin	-6.595905	108.5099367`;
+
+        function parseData() {
+            const lines = rawTokoData.trim().split('\n');
+            return lines.map((line, index) => {
+                const parts = line.split('\t');
+                if (parts.length >= 3) {
+                    const kode = parts[0]?.trim();
+                    const nama = parts[1]?.trim();
+                    let lat = null, lng = null;
+                    
+                    if (parts[2] && parts[2].trim()) {
+                        lat = parseFloat(parts[2].trim().replace(/^:\s*/, ''));
+                        if (isNaN(lat)) lat = null;
+                    }
+                    
+                    if (parts[3] && parts[3].trim()) {
+                        lng = parseFloat(parts[3].trim().replace(/^:\s*/, ''));
+                        if (isNaN(lng)) lng = null;
+                    }
+                    
+                    const distance = calculateDistance(startPoint.lat, startPoint.lng, lat, lng);
+                    const isValid = distance !== null && lat !== null && lng !== null && 
+                                  !isNaN(lat) && !isNaN(lng) &&
+                                  Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+                    
+                    return {
+                        kode,
+                        nama: nama || 'Tidak diketahui',
+                        lat,
+                        lng,
+                        jarak: distance,
+                        urutan: index + 1,
+                        isValid
+                    };
+                }
+                return null;
+            }).filter(t => t !== null);
+        }
+
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            if (!lat1 || !lng1 || !lat2 || !lng2 || 
+                isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) {
+                return null;
+            }
+            
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function createTokoItem(toko) {
+            const mapsUrl = `https://www.google.com/maps?q=${toko.lat},${toko.lng}`;
+            const jarakText = toko.jarak !== null ? `${toko.jarak.toFixed(2)} km` : 'Invalid';
+            const itemClass = toko.isValid ? 'toko-item' : 'toko-item invalid';
+            
+            return `
+                <div class="${itemClass}">
+                    <div class="urutan">${toko.urutan}</div>
+                    <div class="toko-info">
+                        <div class="toko-nama">${toko.nama}</div>
+                        <div class="toko-kode">${toko.kode}</div>
+                        <div class="toko-koordinat">📍 ${toko.lat || 'N/A'}, ${toko.lng || 'N/A'}</div>
+                    </div>
+                    <div class="toko-jarak">${jarakText}</div>
+                    ${toko.isValid ? 
+                        `<a href="${mapsUrl}" class="maps-link" target="_blank">📍 Maps</a>` : 
+                        '<span style="color: #dc3545; font-size: 11px;">❌</span>'
+                    }
+                </div>
+            `;
+        }
+
+        function render() {
+            const tokoList = document.getElementById('toko-list');
+            const filtered = getFilteredTokos();
+            
+            if (filtered.length === 0) {
+                tokoList.innerHTML = '<div style="text-align:center;padding:20px;color:#6c757d;">Tidak ada toko yang sesuai filter.</div>';
+                return;
+            }
+            
+            tokoList.innerHTML = filtered.map(toko => createTokoItem(toko)).join('');
+            updateSummary(filtered);
+        }
+
+        function getFilteredTokos() {
+            let filtered = [...currentTokos];
+            
+            if (validOnly) {
+                filtered = filtered.filter(t => t.isValid);
+            }
+            
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase().trim();
+            if (searchTerm) {
+                filtered = filtered.filter(t => 
+                    t.nama.toLowerCase().includes(searchTerm) || 
+                    t.kode.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            return filtered;
+        }
+
+        function updateSummary(tokos) {
+            const validTokos = tokos.filter(t => t.isValid);
+            const totalDistance = validTokos.reduce((sum, t) => sum + t.jarak, 0);
+            const avgDistance = validTokos.length ? totalDistance / validTokos.length : 0;
+            const closest = validTokos.length ? validTokos.reduce((min, t) => t.jarak < min.jarak ? t : min) : null;
+            
+            document.getElementById('summary').innerHTML = `
+                <strong>📊 Ringkasan:</strong><br>
+                Total toko ditampilkan: ${tokos.length} | Valid: ${validTokos.length} | Invalid: ${tokos.length - validTokos.length}<br>
+                ${validTokos.length ? `Total jarak: ${totalDistance.toFixed(1)} km | Rata-rata: ${avgDistance.toFixed(1)} km | Terdekat: ${closest.nama} (${closest.jarak.toFixed(1)} km)` : 'Tidak ada toko valid'}
+            `;
+        }
+
+        function sortByDistance() {
+            currentTokos.sort((a, b) => {
+                if (!a.isValid && !b.isValid) return 0;
+                if (!a.isValid) return 1;
+                if (!b.isValid) return -1;
+                return a.jarak - b.jarak;
+            });
+            updateUrutan();
+            render();
+        }
+
+        function sortByName() {
+            currentTokos.sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+            updateUrutan();
+            render();
+        }
+
+        function sortByCode() {
+            currentTokos.sort((a, b) => a.kode.localeCompare(b.kode));
+            updateUrutan();
+            render();
+        }
+
+        function showValid() {
+            validOnly = true;
+            render();
+        }
+
+        function showAll() {
+            validOnly = false;
+            render();
+        }
+
+        function updateUrutan() {
+            currentTokos.forEach((toko, index) => toko.urutan = index + 1);
+        }
+
+        function exportCSV() {
+            const filtered = getFilteredTokos().filter(t => t.isValid);
+            if (!filtered.length) {
+                alert('Tidak ada data valid untuk diekspor.');
+                return;
+            }
+            
+            let csv = 'Urutan,Kode,Nama,Latitude,Longitude,Jarak (km)\n';
+            filtered.forEach(t => {
+                csv += `${t.urutan},"${t.kode}","${t.nama}",${t.lat},${t.lng},${t.jarak.toFixed(2)}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'rute_toko_sae_gold.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            allTokos = parseData();
+            currentTokos = [...allTokos];
+            
+            console.log(`Loaded ${allTokos.length} stores`);
+            
+            document.getElementById('searchBox').addEventListener('input', render);
+            
+            sortByDistance();
+        });
+    </script>
+</body>
+</html>
